@@ -225,7 +225,7 @@ public class JavaCodeHelper {
 		cfg.setDefaultEncoding(encoding);
 		cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
 
-		Template temp = cfg.getTemplate("model2.ftl");
+		Template temp = cfg.getTemplate("model3.ftl");
 
 		Map<String, Object> dataOutMap = new HashMap<String, Object>();
 
@@ -237,12 +237,12 @@ public class JavaCodeHelper {
 		dataOutMap.put("date", new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
 
 		// ×Ö¶ÎÁÐ±í
-		List<Attribute> fieldList = new ArrayList<Attribute>();
-		for (Attribute field : fields) {
-			fieldList.add(field);
-		}
+//		List<Attribute> fieldList = new ArrayList<Attribute>();
+//		for (Attribute field : fields) {
+//			fieldList.add(field);
+//		}
 
-		dataOutMap.put("fieldList", fieldList);
+		dataOutMap.put("fieldList", fields);
 
 		File file = new File(new File(FileUtil.getProjectPath()).getParentFile().getParent() + File.separator + "src");
 		if (!file.exists()) {
