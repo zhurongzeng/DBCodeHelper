@@ -40,7 +40,7 @@ public class EntityBuilderBiz {
 					javaCodeHelper.addField(c.getFieldNameCH(), type, c.getFieldName());// 字段
 				} else {// 普通字段
 					String fullType = TypeMapping.sqlToJava(c.getFieldType());
-					MainWindow.print("字段类型转换：" + c.getFieldName() + " " + c.getFieldType() + "-->" + fullType);
+					MainWindow.print("字段类型转换：[" + c.getFieldName() + "]\b" + c.getFieldType() + "-->" + fullType);
 					String type = JavaCodeHelper.classNameSubPackage(fullType)[1];
 					javaCodeHelper.addImportPage(fullType);// 导入类型包
 					javaCodeHelper.addField(c.getFieldNameCH(), type, c.getFieldName());// 字段

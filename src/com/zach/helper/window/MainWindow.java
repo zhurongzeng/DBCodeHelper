@@ -48,9 +48,9 @@ public class MainWindow extends JFrame {
 	private JScrollPane scrTables;
 	private JScrollPane scrConsole;
 	private JTable dataTable;
-	private static JTextArea txtConsole;
+	private static MenuTextArea txtConsole;
 	private FileDialog fileDialog;
-
+	
 	Map<String, Table> excelTables = new LinkedHashMap<String, Table>();
 	private String[] columns = new String[] { "", "表名", "中文名", "包名", "" };// 列名
 	private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");// 时间格式
@@ -71,7 +71,7 @@ public class MainWindow extends JFrame {
 		btnSync = new JButton("同步");
 		scrTables = new JScrollPane();
 		scrConsole = new JScrollPane();
-		txtConsole = new JTextArea();
+		txtConsole = new MenuTextArea();
 		dataTable = new JTable() {
 			private static final long serialVersionUID = 1L;
 
@@ -83,14 +83,15 @@ public class MainWindow extends JFrame {
 				return false;
 			}
 		};
-		
+
 		Container c = getContentPane();
 		c.setLayout(new BorderLayout(0, 0));
 		panelBuild.setLayout(null);
 		panelSync.setLayout(null);
 		panelConsole.setLayout(null);
-		panelConsole.setPreferredSize(new Dimension(790, 270));
-		
+		panelConsole.setPreferredSize(new Dimension(790, 280));
+
+		// 选择文件
 		btnSelectFile.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
@@ -100,6 +101,7 @@ public class MainWindow extends JFrame {
 		panelBuild.add(btnSelectFile);
 		btnSelectFile.setBounds(10, 10, 86, 25);
 
+		// 生成实体
 		btnBuildEntity.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
 				btnBuildEntityActionPerformed(evt, "GBK");
@@ -108,6 +110,7 @@ public class MainWindow extends JFrame {
 		panelBuild.add(btnBuildEntity);
 		btnBuildEntity.setBounds(100, 10, 86, 25);
 
+		// 数据表格
 		dataTable.setModel(new DefaultTableModel(new Object[][] {}, columns));
 		// 设置表格单元格内容居中
 		DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
@@ -115,26 +118,28 @@ public class MainWindow extends JFrame {
 		dataTable.setDefaultRenderer(Object.class, renderer);
 		scrTables.setViewportView(dataTable);
 		panelBuild.add(scrTables);
-		scrTables.setBounds(10, 50, 790, 210);
+		scrTables.setBounds(10, 45, 790, 210);
 
+		// 同步
 		btnSync.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
-				btnSelectFileActionPerformed(evt);
+				btnBuildingActionPerformed(evt);
 			}
 		});
 		panelSync.add(btnSync);
 		btnSync.setBounds(10, 10, 70, 25);
-		
+
+		// 控制台
 		txtConsole.setEditable(false);
 		scrConsole.setViewportView(txtConsole);
 		panelConsole.add(scrConsole);
-		scrConsole.setBounds(10, 5, 795, 260);
+		scrConsole.setBounds(10, 5, 795, 270);
 
 		// 将标签面板加入到选项卡面板对象上
 		tabbedPane.addTab("生成实体", null, panelBuild, "生成Java实体类");
 		tabbedPane.addTab("同步", null, panelSync, "同步数据库表");
-		
+
 		c.add(BorderLayout.CENTER, tabbedPane);
 		c.add(BorderLayout.SOUTH, panelConsole);
 
@@ -166,25 +171,25 @@ public class MainWindow extends JFrame {
 		fileDialog.setMultipleMode(false);// 多选
 
 		// 初始化表格
-		 initTabTable(null);
+		initTabTable(null);
 
-		 print("根目录:" + FileUtil.getProjectPath());
+		print("根目录:" + FileUtil.getProjectPath());
 	}
 
 	/**
 	 * 选择文件
 	 */
-	private void btnSelectFileActionPerformed(java.awt.event.ActionEvent evt) {
+	private void btnSelectFileActionPerformed(ActionEvent evt) {
 		fileDialog.setVisible(true);// 显示文件选择器
 		File[] fs = fileDialog.getFiles();
 		if (fs.length > 0) {
 			excelTables.clear();// 清空所有
 			for (int i = 0; i < fs.length; i++) {
 				try {
-					 print("加载数据库表······");
+					print("加载数据库表······");
 					Map<String, Table> ts = ExcelHelper.getAllTables(fs[i], true);
 					excelTables.putAll(ts);
-					 print("加载数据库表完成！");
+					print("加载数据库表完成！");
 				} catch (Exception err) {
 					err.printStackTrace();
 				}
@@ -216,6 +221,62 @@ public class MainWindow extends JFrame {
 			print("实体类生成失败，失败原因：" + e.toString());
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * 点击同步
+	 */
+	private void btnBuildingActionPerformed(ActionEvent evt) {
+		// if (!isSelect()) {
+		// return;// 没有选中的行
+		// }
+		//
+		// // 有选中的行
+		// print("开始同步······");
+		// print("开始测试连接······");
+		//
+		// String dbType = comboDB.getSelectedItem().toString();
+		// String url = txtURL.getText();
+		// String user = txtUser.getText();
+		// String pwd = new String(txtPassword.getPassword());
+		// String dbName = txtDB.getText();
+		//
+		// con = new ConConfig(dbType, url, user, pwd);
+		//
+		// // 测试连接
+		// boolean isConOk = ConnectionHelper.testConnection(con);
+		// if (!isConOk) {
+		// print("连接失败！");
+		// print("同步失败！");
+		// return;
+		// }
+		// print("连接成功！");
+		// con.setDbName(dbName);
+		//
+		// // 测试数据库是否存在或有权限
+		// boolean isDBOk = ConnectionHelper.testConnection(con);
+		// if (!isDBOk) {
+		// print("正在初始化数据库······");
+		// MssqlDBHelper.initDB(url, user, pwd, dbName);
+		// print("数据库初始化成功！");
+		// }
+		//
+		// // 开始同步表
+		// String filePath = FileUtil.getProjectPath() + "createTable.sql";
+		//
+		// Map<String, Table> excelTemps = new HashMap<String, Table>();
+		// for (int i = 0; i < dataTable.getRowCount(); i++) {
+		// Boolean isSelect = (Boolean) dataTable.getModel().getValueAt(i, 0);
+		// if (isSelect) {
+		// Table t = (Table) dataTable.getModel().getValueAt(i, 4);
+		// excelTemps.put(t.getTableName(), t);
+		// }
+		// }
+
+		// SyncDbBiz.builderTable(this, con, excelTemps);// 同步库
+		// SyncDbBiz.builderSql(this, excelTemps, filePath);// 生成sql脚本
+
+		print("同步完成！");
 	}
 
 	/**
@@ -281,7 +342,7 @@ public class MainWindow extends JFrame {
 	 * 将信息输出到控制台
 	 */
 	public static void print(String str) {
-		txtConsole.append("[" + sdf.format(new Date()) + "] " + str + "\r\n");
+		txtConsole.append("[" + sdf.format(new Date()) + "]\b" + str + "\r\n");
 	}
 
 	public static void main(String[] args) {
