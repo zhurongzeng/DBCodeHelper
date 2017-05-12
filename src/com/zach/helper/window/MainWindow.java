@@ -18,12 +18,14 @@ import java.util.Map;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
-import javax.swing.JTextArea;
+import javax.swing.UIManager;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -48,30 +50,62 @@ public class MainWindow extends JFrame {
 	private JScrollPane scrTables;
 	private JScrollPane scrConsole;
 	private JTable dataTable;
+	private JLabel labSelTemplate;
+	private JComboBox<String> comboSelTemplate;
 	private static MenuTextArea txtConsole;
 	private FileDialog fileDialog;
-	
+
 	Map<String, Table> excelTables = new LinkedHashMap<String, Table>();
-	private String[] columns = new String[] { "", "±íÃû", "ÖĞÎÄÃû", "°üÃû", "" };// ÁĞÃû
-	private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");// Ê±¼ä¸ñÊ½
+	private String[] columns = new String[] { "", "è¡¨å", "ä¸­æ–‡å", "åŒ…å", "" };// åˆ—å
+	private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");// æ—¶é—´æ ¼å¼
 
 	public MainWindow() {
-		initComponents();
+		initCommonComp();
+		initBuildComp();
+		initSyncComp();
 		initWindow();
 	}
 
-	private void initComponents() {
+	/**
+	 * åˆå§‹åŒ–é¡µé¢å¸ƒå±€
+	 */
+	private void initCommonComp() {
+		Container container = getContentPane();
 		mainFrame = new JFrame();
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		panelBuild = new JPanel();
-		panelSync = new JPanel();
 		panelConsole = new JPanel();
-		btnSelectFile = new JButton("Ñ¡ÔñÎÄ¼ş");
-		btnBuildEntity = new JButton("Éú³ÉÊµÌå");
-		btnSync = new JButton("Í¬²½");
-		scrTables = new JScrollPane();
 		scrConsole = new JScrollPane();
 		txtConsole = new MenuTextArea();
+
+		container.setLayout(new BorderLayout(0, 0));
+		
+		panelConsole.setLayout(null);
+		panelConsole.setPreferredSize(new Dimension(790, 280));
+		
+		txtConsole.setBackground(mainFrame.getBackground());
+		txtConsole.setEditable(false);
+		
+		scrConsole.setViewportView(txtConsole);
+		panelConsole.add(scrConsole);
+		scrConsole.setBounds(10, 5, 795, 270);
+
+		container.add(BorderLayout.CENTER, tabbedPane);
+		container.add(BorderLayout.SOUTH, panelConsole);
+
+		mainFrame.add(container);
+		mainFrame.pack();
+	}
+
+	/**
+	 * åˆå§‹åŒ–ç”Ÿæˆå®ä½“é¡µ
+	 */
+	private void initBuildComp() {
+		panelBuild = new JPanel();
+		btnSelectFile = new JButton("é€‰æ‹©æ–‡ä»¶");
+		btnBuildEntity = new JButton("ç”Ÿæˆå®ä½“");
+		scrTables = new JScrollPane();
+		labSelTemplate = new JLabel("é€‰æ‹©æ¨¡ç‰ˆï¼š");
+		comboSelTemplate = new JComboBox<>();
 		dataTable = new JTable() {
 			private static final long serialVersionUID = 1L;
 
@@ -84,14 +118,9 @@ public class MainWindow extends JFrame {
 			}
 		};
 
-		Container c = getContentPane();
-		c.setLayout(new BorderLayout(0, 0));
 		panelBuild.setLayout(null);
-		panelSync.setLayout(null);
-		panelConsole.setLayout(null);
-		panelConsole.setPreferredSize(new Dimension(790, 280));
 
-		// Ñ¡ÔñÎÄ¼ş
+		// é€‰æ‹©æ–‡ä»¶
 		btnSelectFile.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
@@ -101,26 +130,56 @@ public class MainWindow extends JFrame {
 		panelBuild.add(btnSelectFile);
 		btnSelectFile.setBounds(10, 10, 86, 25);
 
-		// Éú³ÉÊµÌå
+		// ç”Ÿæˆå®ä½“
 		btnBuildEntity.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
-				btnBuildEntityActionPerformed(evt, "GBK");
+				buildEntity(evt);
 			}
 		});
 		panelBuild.add(btnBuildEntity);
 		btnBuildEntity.setBounds(100, 10, 86, 25);
 
-		// Êı¾İ±í¸ñ
+		// é€‰æ‹©æ¨¡ç‰ˆæ ‡ç­¾
+		labSelTemplate.setAlignmentX(JLabel.RIGHT_ALIGNMENT);
+		panelBuild.add(labSelTemplate);
+		labSelTemplate.setBounds(530, 11, 70, 23);
+
+		// é€‰æ‹©æ¨¡ç‰ˆä¸‹æ‹‰æ¡†
+		addItem(comboSelTemplate);
+		String selectedItem = comboSelTemplate.getSelectedItem().toString();
+		if (selectedItem != null) {
+			comboSelTemplate.setToolTipText(selectedItem);
+		}
+		panelBuild.add(comboSelTemplate);
+		comboSelTemplate.setBounds(600, 11, 200, 23);
+
+		// æ•°æ®è¡¨æ ¼
 		dataTable.setModel(new DefaultTableModel(new Object[][] {}, columns));
-		// ÉèÖÃ±í¸ñµ¥Ôª¸ñÄÚÈİ¾ÓÖĞ
+		// è®¾ç½®è¡¨æ ¼å•å…ƒæ ¼å†…å®¹å±…ä¸­
 		DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
 		renderer.setHorizontalAlignment(DefaultTableCellRenderer.CENTER);
 		dataTable.setDefaultRenderer(Object.class, renderer);
+		// è®¾ç½®è¡¨å¤´æ–‡æœ¬å±…ä¸­
+		((DefaultTableCellRenderer) dataTable.getTableHeader().getDefaultRenderer())
+				.setHorizontalAlignment(JLabel.CENTER);
 		scrTables.setViewportView(dataTable);
 		panelBuild.add(scrTables);
 		scrTables.setBounds(10, 45, 790, 210);
 
-		// Í¬²½
+		// å°†æ ‡ç­¾é¢æ¿åŠ å…¥åˆ°é€‰é¡¹å¡é¢æ¿å¯¹è±¡ä¸Š
+		tabbedPane.addTab("ç”Ÿæˆå®ä½“", null, panelBuild, "ç”ŸæˆJavaå®ä½“ç±»");
+	}
+
+	/**
+	 * åˆå§‹åŒ–åŒæ­¥é¡µ
+	 */
+	private void initSyncComp() {
+		panelSync = new JPanel();
+		btnSync = new JButton("åŒæ­¥");
+
+		panelSync.setLayout(null);
+
+		// åŒæ­¥
 		btnSync.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent evt) {
@@ -130,29 +189,18 @@ public class MainWindow extends JFrame {
 		panelSync.add(btnSync);
 		btnSync.setBounds(10, 10, 70, 25);
 
-		// ¿ØÖÆÌ¨
-		txtConsole.setEditable(false);
-		scrConsole.setViewportView(txtConsole);
-		panelConsole.add(scrConsole);
-		scrConsole.setBounds(10, 5, 795, 270);
-
-		// ½«±êÇ©Ãæ°å¼ÓÈëµ½Ñ¡Ïî¿¨Ãæ°å¶ÔÏóÉÏ
-		tabbedPane.addTab("Éú³ÉÊµÌå", null, panelBuild, "Éú³ÉJavaÊµÌåÀà");
-		tabbedPane.addTab("Í¬²½", null, panelSync, "Í¬²½Êı¾İ¿â±í");
-
-		c.add(BorderLayout.CENTER, tabbedPane);
-		c.add(BorderLayout.SOUTH, panelConsole);
-
-		mainFrame.add(c);
-		mainFrame.pack();
+		tabbedPane.addTab("åŒæ­¥", null, panelSync, "åŒæ­¥æ•°æ®åº“è¡¨");
 	}
 
+	/**
+	 * åˆå§‹åŒ–çª—å£
+	 */
 	private void initWindow() {
-		mainFrame.setResizable(false);// ²»¿ÉĞŞ¸Ä´óĞ¡
-		mainFrame.setTitle("Êı¾İ¿â¹¤¾ß");
+		mainFrame.setResizable(false);// ä¸å¯ä¿®æ”¹å¤§å°
+		mainFrame.setTitle("æ•°æ®åº“å·¥å…·");
 		mainFrame.setSize(820, 600);
 
-		// ³õÊ¼»¯´°¿ÚÎ»ÖÃ
+		// åˆå§‹åŒ–çª—å£ä½ç½®
 		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		Dimension frameSize = mainFrame.getSize();
 		if (frameSize.height > screenSize.height) {
@@ -166,42 +214,42 @@ public class MainWindow extends JFrame {
 		mainFrame.setVisible(true);
 		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		// ³õÊ¼»¯ÎÄ¼şÑ¡ÔñÆ÷
+		// åˆå§‹åŒ–æ–‡ä»¶é€‰æ‹©å™¨
 		fileDialog = new FileDialog(this);
-		fileDialog.setMultipleMode(false);// ¶àÑ¡
+		fileDialog.setMultipleMode(false);// å¤šé€‰
 
-		// ³õÊ¼»¯±í¸ñ
+		// åˆå§‹åŒ–è¡¨æ ¼
 		initTabTable(null);
 
-		print("¸ùÄ¿Â¼:" + FileUtil.getProjectPath());
+		print("æ ¹ç›®å½•:" + FileUtil.getProjectPath());
 	}
 
 	/**
-	 * Ñ¡ÔñÎÄ¼ş
+	 * é€‰æ‹©æ–‡ä»¶
 	 */
 	private void btnSelectFileActionPerformed(ActionEvent evt) {
-		fileDialog.setVisible(true);// ÏÔÊ¾ÎÄ¼şÑ¡ÔñÆ÷
+		fileDialog.setVisible(true);// æ˜¾ç¤ºæ–‡ä»¶é€‰æ‹©å™¨
 		File[] fs = fileDialog.getFiles();
 		if (fs.length > 0) {
-			excelTables.clear();// Çå¿ÕËùÓĞ
+			excelTables.clear();// æ¸…ç©ºæ‰€æœ‰
 			for (int i = 0; i < fs.length; i++) {
 				try {
-					print("¼ÓÔØÊı¾İ¿â±í¡¤¡¤¡¤¡¤¡¤¡¤");
+					print("åŠ è½½æ•°æ®åº“è¡¨Â·Â·Â·Â·Â·Â·");
 					Map<String, Table> ts = ExcelHelper.getAllTables(fs[i], true);
 					excelTables.putAll(ts);
-					print("¼ÓÔØÊı¾İ¿â±íÍê³É£¡");
+					print("åŠ è½½æ•°æ®åº“è¡¨å®Œæˆï¼");
 				} catch (Exception err) {
 					err.printStackTrace();
 				}
 			}
-			initTabTable(null);// ½«excelTablesÖĞµÄÊı¾İ£¬Ìí¼Óµ½tabTabes¿Ø¼şÖĞ
+			initTabTable(null);// å°†excelTablesä¸­çš„æ•°æ®ï¼Œæ·»åŠ åˆ°tabTabesæ§ä»¶ä¸­
 		}
 	}
 
 	/**
-	 * µã»÷Éú³ÉÊµÌå
+	 * ç‚¹å‡»ç”Ÿæˆå®ä½“
 	 */
-	private void btnBuildEntityActionPerformed(ActionEvent evt, String encoding) {
+	private void buildEntity(ActionEvent evt) {
 		Map<String, Table> tableMap = new LinkedHashMap<String, Table>();
 		try {
 			if (dataTable.getRowCount() > 0) {
@@ -212,28 +260,33 @@ public class MainWindow extends JFrame {
 						tableMap.put(table.getTableName(), table);
 					}
 				}
-				print("Éú³ÉÊµÌåÀà¡¤¡¤¡¤¡¤¡¤¡¤");
-				EntityBuilderBiz.builder(tableMap, encoding);// Éú³ÉÊµÌå
+				if (tableMap.size() > 0) {
+					print("ç”Ÿæˆå®ä½“ç±»Â·Â·Â·Â·Â·Â·");
+					String templateName = comboSelTemplate.getSelectedItem().toString();// æ¨¡ç‰ˆåç§°
+					EntityBuilderBiz.builder(tableMap, templateName, "GBK");// ç”Ÿæˆå®ä½“
+				} else {
+					print("è¯·é€‰æ‹©ä¸€æ¡è®°å½•ï¼");
+				}
 			} else {
-				throw new Exception("ÎŞÊı¾İ¿â±í£¡");
+				print("æ— æ•°æ®åº“è¡¨ï¼");
 			}
 		} catch (Exception e) {
-			print("ÊµÌåÀàÉú³ÉÊ§°Ü£¬Ê§°ÜÔ­Òò£º" + e.toString());
+			print("å®ä½“ç±»ç”Ÿæˆå¤±è´¥ï¼Œå¤±è´¥åŸå› ï¼š" + e.toString());
 			e.printStackTrace();
 		}
 	}
 
 	/**
-	 * µã»÷Í¬²½
+	 * ç‚¹å‡»åŒæ­¥
 	 */
 	private void btnBuildingActionPerformed(ActionEvent evt) {
 		// if (!isSelect()) {
-		// return;// Ã»ÓĞÑ¡ÖĞµÄĞĞ
+		// return;// æ²¡æœ‰é€‰ä¸­çš„è¡Œ
 		// }
 		//
-		// // ÓĞÑ¡ÖĞµÄĞĞ
-		// print("¿ªÊ¼Í¬²½¡¤¡¤¡¤¡¤¡¤¡¤");
-		// print("¿ªÊ¼²âÊÔÁ¬½Ó¡¤¡¤¡¤¡¤¡¤¡¤");
+		// // æœ‰é€‰ä¸­çš„è¡Œ
+		// print("å¼€å§‹åŒæ­¥Â·Â·Â·Â·Â·Â·");
+		// print("å¼€å§‹æµ‹è¯•è¿æ¥Â·Â·Â·Â·Â·Â·");
 		//
 		// String dbType = comboDB.getSelectedItem().toString();
 		// String url = txtURL.getText();
@@ -243,25 +296,25 @@ public class MainWindow extends JFrame {
 		//
 		// con = new ConConfig(dbType, url, user, pwd);
 		//
-		// // ²âÊÔÁ¬½Ó
+		// // æµ‹è¯•è¿æ¥
 		// boolean isConOk = ConnectionHelper.testConnection(con);
 		// if (!isConOk) {
-		// print("Á¬½ÓÊ§°Ü£¡");
-		// print("Í¬²½Ê§°Ü£¡");
+		// print("è¿æ¥å¤±è´¥ï¼");
+		// print("åŒæ­¥å¤±è´¥ï¼");
 		// return;
 		// }
-		// print("Á¬½Ó³É¹¦£¡");
+		// print("è¿æ¥æˆåŠŸï¼");
 		// con.setDbName(dbName);
 		//
-		// // ²âÊÔÊı¾İ¿âÊÇ·ñ´æÔÚ»òÓĞÈ¨ÏŞ
+		// // æµ‹è¯•æ•°æ®åº“æ˜¯å¦å­˜åœ¨æˆ–æœ‰æƒé™
 		// boolean isDBOk = ConnectionHelper.testConnection(con);
 		// if (!isDBOk) {
-		// print("ÕıÔÚ³õÊ¼»¯Êı¾İ¿â¡¤¡¤¡¤¡¤¡¤¡¤");
+		// print("æ­£åœ¨åˆå§‹åŒ–æ•°æ®åº“Â·Â·Â·Â·Â·Â·");
 		// MssqlDBHelper.initDB(url, user, pwd, dbName);
-		// print("Êı¾İ¿â³õÊ¼»¯³É¹¦£¡");
+		// print("æ•°æ®åº“åˆå§‹åŒ–æˆåŠŸï¼");
 		// }
 		//
-		// // ¿ªÊ¼Í¬²½±í
+		// // å¼€å§‹åŒæ­¥è¡¨
 		// String filePath = FileUtil.getProjectPath() + "createTable.sql";
 		//
 		// Map<String, Table> excelTemps = new HashMap<String, Table>();
@@ -273,23 +326,23 @@ public class MainWindow extends JFrame {
 		// }
 		// }
 
-		// SyncDbBiz.builderTable(this, con, excelTemps);// Í¬²½¿â
-		// SyncDbBiz.builderSql(this, excelTemps, filePath);// Éú³Ésql½Å±¾
+		// SyncDbBiz.builderTable(this, con, excelTemps);// åŒæ­¥åº“
+		// SyncDbBiz.builderSql(this, excelTemps, filePath);// ç”Ÿæˆsqlè„šæœ¬
 
-		print("Í¬²½Íê³É£¡");
+		print("åŒæ­¥å®Œæˆï¼");
 	}
 
 	/**
-	 * ½«excelTablesÖĞµÄÊı¾İ£¬Ìí¼Óµ½tabTabes¿Ø¼şÖĞ
+	 * å°†excelTablesä¸­çš„æ•°æ®ï¼Œæ·»åŠ åˆ°tabTabesæ§ä»¶ä¸­
 	 * 
 	 * @param str
-	 *            ¹ıÂË×Ö·û
+	 *            è¿‡æ»¤å­—ç¬¦
 	 */
 	private void initTabTable(String str) {
 		dataTable.removeAll();
 		ArrayList<Object[]> arrTemp = new ArrayList<Object[]>();
 		for (String key : excelTables.keySet()) {
-			if (str != null) {// ĞèÒª¹ıÂË
+			if (str != null) {// éœ€è¦è¿‡æ»¤
 				if (key.indexOf(str) < 0) {
 					continue;
 				}
@@ -299,7 +352,7 @@ public class MainWindow extends JFrame {
 					new Object[] { false, ttemp.getTableName(), ttemp.getTableNameCH(), ttemp.getPackName(), ttemp });
 		}
 
-		// ¹¹½¨Êı¾İÊı×é
+		// æ„å»ºæ•°æ®æ•°ç»„
 		Object[][] tarr = new Object[arrTemp.size()][5];
 		for (int i = 0; i < tarr.length; i++) {
 			for (int j = 0; j < 5; j++) {
@@ -308,7 +361,7 @@ public class MainWindow extends JFrame {
 		}
 		dataTable.setModel(new DefaultTableModel(tarr, columns));
 
-		// µÚÒ»ÁĞÎªÑ¡ÔñÁĞ
+		// ç¬¬ä¸€åˆ—ä¸ºé€‰æ‹©åˆ—
 		dataTable.getColumnModel().getColumn(0).setCellRenderer(new TableCellRenderer() {
 			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
 					boolean hasFocus, int row, int column) {
@@ -328,7 +381,7 @@ public class MainWindow extends JFrame {
 	}
 
 	/**
-	 * ÉèÖÃÁĞ¿í
+	 * è®¾ç½®åˆ—å®½
 	 */
 	private void setCW(int index, int width) {
 		TableColumn column = dataTable.getColumnModel().getColumn(index);
@@ -339,13 +392,36 @@ public class MainWindow extends JFrame {
 	}
 
 	/**
-	 * ½«ĞÅÏ¢Êä³öµ½¿ØÖÆÌ¨
+	 * å°†ä¿¡æ¯è¾“å‡ºåˆ°æ§åˆ¶å°
 	 */
 	public static void print(String str) {
 		txtConsole.append("[" + sdf.format(new Date()) + "]\b" + str + "\r\n");
+		int length = txtConsole.getText().length();
+		txtConsole.setCaretPosition(length);// è‡ªåŠ¨æ˜¾ç¤ºæœ€åä¸€è¡Œ
+	}
+
+	/**
+	 * æŸ¥è¯¢æ¨¡ç‰ˆæ–‡ä»¶ï¼Œæ·»åŠ åˆ°ä¸‹æ‹‰æ¡†
+	 */
+	private void addItem(JComboBox<String> comboBox) {
+		File templateFile = new File(FileUtil.getTemplatePath("/templates"));
+		File[] files = templateFile.listFiles();
+		String[] tooltips = new String[files.length];
+		for (int i = 0; i < files.length; i++) {
+			comboBox.addItem(files[i].getName());
+			tooltips[i] = files[i].getName();
+			if (files[i].getName().contains("é»˜è®¤")) {
+				comboBox.setSelectedIndex(comboBox.getItemCount() - 1);
+			}
+		}
 	}
 
 	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());// com.sun.java.swing.plaf.windows.WindowsLookAndFeel
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		new MainWindow();
 	}
 

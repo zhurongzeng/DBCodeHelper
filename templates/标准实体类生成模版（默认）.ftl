@@ -1,5 +1,9 @@
 package ${packageName};
 
+<#list packageList as package>
+import ${package};
+</#list>
+
 /**
  * ${classDescription}Model∂‘œÛ
  *

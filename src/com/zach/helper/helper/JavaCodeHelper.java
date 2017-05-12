@@ -215,41 +215,35 @@ public class JavaCodeHelper {
 	/**
 	 * 使用freemarker模版生成model
 	 * 
+	 * @param templateName
 	 * @param encoding
 	 * @return
 	 * @throws Exception
 	 */
-	public String buildByTemplate(String encoding) throws Exception {
+	public String buildByTemplate(String templateName, String encoding) throws Exception {
 		Configuration cfg = new Configuration(Configuration.VERSION_2_3_23);
-		cfg.setDirectoryForTemplateLoading(new File(FileUtil.getTemplatePath("\\resources\\templates")));
+		cfg.setDirectoryForTemplateLoading(new File(FileUtil.getTemplatePath("/templates")));
 		cfg.setDefaultEncoding(encoding);
 		cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
 
-		Template temp = cfg.getTemplate("model3.ftl");
+		Template temp = cfg.getTemplate(templateName);
 
 		Map<String, Object> dataOutMap = new HashMap<String, Object>();
 
 		dataOutMap.put("packageName", packageName);
-		dataOutMap.put("importPackages", packages);
+		dataOutMap.put("packageList", packages);
 		dataOutMap.put("classDescription", classDescription);
 		dataOutMap.put("className", clzName);
 		dataOutMap.put("author", System.getenv().get("USERNAME"));
 		dataOutMap.put("date", new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
-
-		// 字段列表
-//		List<Attribute> fieldList = new ArrayList<Attribute>();
-//		for (Attribute field : fields) {
-//			fieldList.add(field);
-//		}
-
 		dataOutMap.put("fieldList", fields);
 
-		File file = new File(new File(FileUtil.getProjectPath()).getParentFile().getParent() + File.separator + "src");
+		File file = new File(new File(FileUtil.getProjectPath()) + File.separator + "src" + File.separator + "files");
 		if (!file.exists()) {
 			file.mkdirs();
 		}
 		OutputStream fos = new FileOutputStream(new File(file, clzName + ".java")); // java文件的生成目录
-		Writer out = new OutputStreamWriter(fos);
+		Writer out = new OutputStreamWriter(fos, encoding);
 		temp.process(dataOutMap, out);
 
 		fos.flush();

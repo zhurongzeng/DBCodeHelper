@@ -359,7 +359,7 @@ public class MainWindow2 extends java.awt.Frame {
 				}
 
 				print("生成实体类······");
-				EntityBuilderBiz.builder(tableMap, encoding);// 生成实体
+//				EntityBuilderBiz.builder(tableMap, encoding);// 生成实体
 			} else {
 				throw new Exception("无数据库表！");
 			}

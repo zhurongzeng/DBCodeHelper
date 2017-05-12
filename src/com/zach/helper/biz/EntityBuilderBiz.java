@@ -12,7 +12,7 @@ import com.zach.helper.window.MainWindow;
  * 实体类生成器
  */
 public class EntityBuilderBiz {
-	public static String builder(Map<String, Table> tableMap, String encoding) throws Exception {
+	public static String builder(Map<String, Table> tableMap, String templateName, String encoding) throws Exception {
 		String filePath = "";
 		for (String tableKey : tableMap.keySet()) {
 			Table table = tableMap.get(tableKey);
@@ -46,7 +46,8 @@ public class EntityBuilderBiz {
 					javaCodeHelper.addField(c.getFieldNameCH(), type, c.getFieldName());// 字段
 				}
 			}
-			filePath = javaCodeHelper.buildByTemplate(encoding);// 生成实体
+			// 生成实体
+			filePath = javaCodeHelper.buildByTemplate(templateName, encoding);
 			MainWindow.print("实体类生成成功！文件路径：" + filePath);
 		}
 		return filePath;
