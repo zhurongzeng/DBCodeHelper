@@ -5,6 +5,7 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FileDialog;
+import java.awt.Label;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -12,6 +13,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -22,9 +24,11 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.UIManager;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -32,8 +36,12 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
 import com.zach.helper.biz.EntityBuilderBiz;
+import com.zach.helper.biz.SyncDbBiz;
+import com.zach.helper.entity.ConConfig;
 import com.zach.helper.entity.Table;
+import com.zach.helper.helper.ConnectionHelper;
 import com.zach.helper.helper.ExcelHelper;
+import com.zach.helper.helper.MssqlDBHelper;
 import com.zach.helper.util.FileUtil;
 
 public class MainWindow extends JFrame {
@@ -46,6 +54,7 @@ public class MainWindow extends JFrame {
 	private JPanel panelConsole;
 	private JButton btnSelectFile;
 	private JButton btnBuildEntity;
+	private JButton btnTest;
 	private JButton btnSync;
 	private JScrollPane scrTables;
 	private JScrollPane scrConsole;
@@ -54,10 +63,24 @@ public class MainWindow extends JFrame {
 	private JComboBox<String> comboSelTemplate;
 	private static MenuTextArea txtConsole;
 	private FileDialog fileDialog;
+	private JLabel labDBType;
+	private JLabel labURL;
+	private JLabel labUser;
+	private JLabel labPassword;
+	private JLabel labPort;
+	private JLabel labDB;
+	private JComboBox<String> comboDBType;
+	private JTextField txtURL;
+	private JTextField txtUser;
+	private JPasswordField txtPassword;
+	private JTextField txtPort;
+	private JTextField txtDB;
 
 	Map<String, Table> excelTables = new LinkedHashMap<String, Table>();
 	private String[] columns = new String[] { "", "表名", "中文名", "包名", "" };// 列名
+	private String[] DBType = new String[] { "MySql", "Oracle", "SQL Server", "DB2", "Sybase" };// 数据库类型
 	private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");// 时间格式
+	private ConConfig config;// 连接信息
 
 	public MainWindow() {
 		initCommonComp();
@@ -78,13 +101,13 @@ public class MainWindow extends JFrame {
 		txtConsole = new MenuTextArea();
 
 		container.setLayout(new BorderLayout(0, 0));
-		
+
 		panelConsole.setLayout(null);
 		panelConsole.setPreferredSize(new Dimension(790, 280));
-		
+
 		txtConsole.setBackground(mainFrame.getBackground());
 		txtConsole.setEditable(false);
-		
+
 		scrConsole.setViewportView(txtConsole);
 		panelConsole.add(scrConsole);
 		scrConsole.setBounds(10, 5, 795, 270);
@@ -104,7 +127,7 @@ public class MainWindow extends JFrame {
 		btnSelectFile = new JButton("选择文件");
 		btnBuildEntity = new JButton("生成实体");
 		scrTables = new JScrollPane();
-		labSelTemplate = new JLabel("选择模版：");
+		labSelTemplate = new JLabel("选择模版：", JLabel.RIGHT);
 		comboSelTemplate = new JComboBox<>();
 		dataTable = new JTable() {
 			private static final long serialVersionUID = 1L;
@@ -127,8 +150,8 @@ public class MainWindow extends JFrame {
 				btnSelectFileActionPerformed(evt);
 			}
 		});
-		panelBuild.add(btnSelectFile);
 		btnSelectFile.setBounds(10, 10, 86, 25);
+		panelBuild.add(btnSelectFile);
 
 		// 生成实体
 		btnBuildEntity.addActionListener(new java.awt.event.ActionListener() {
@@ -136,13 +159,12 @@ public class MainWindow extends JFrame {
 				buildEntity(evt);
 			}
 		});
-		panelBuild.add(btnBuildEntity);
 		btnBuildEntity.setBounds(100, 10, 86, 25);
+		panelBuild.add(btnBuildEntity);
 
 		// 选择模版标签
-		labSelTemplate.setAlignmentX(JLabel.RIGHT_ALIGNMENT);
+		labSelTemplate.setBounds(520, 11, 70, 23);
 		panelBuild.add(labSelTemplate);
-		labSelTemplate.setBounds(530, 11, 70, 23);
 
 		// 选择模版下拉框
 		addItem(comboSelTemplate);
@@ -150,8 +172,8 @@ public class MainWindow extends JFrame {
 		if (selectedItem != null) {
 			comboSelTemplate.setToolTipText(selectedItem);
 		}
+		comboSelTemplate.setBounds(590, 11, 210, 23);
 		panelBuild.add(comboSelTemplate);
-		comboSelTemplate.setBounds(600, 11, 200, 23);
 
 		// 数据表格
 		dataTable.setModel(new DefaultTableModel(new Object[][] {}, columns));
@@ -163,8 +185,8 @@ public class MainWindow extends JFrame {
 		((DefaultTableCellRenderer) dataTable.getTableHeader().getDefaultRenderer())
 				.setHorizontalAlignment(JLabel.CENTER);
 		scrTables.setViewportView(dataTable);
-		panelBuild.add(scrTables);
 		scrTables.setBounds(10, 45, 790, 210);
+		panelBuild.add(scrTables);
 
 		// 将标签面板加入到选项卡面板对象上
 		tabbedPane.addTab("生成实体", null, panelBuild, "生成Java实体类");
@@ -175,9 +197,32 @@ public class MainWindow extends JFrame {
 	 */
 	private void initSyncComp() {
 		panelSync = new JPanel();
+		btnTest = new JButton("测试连接");
 		btnSync = new JButton("同步");
+		labDBType = new JLabel("数据库类型：", JLabel.RIGHT);
+		labURL = new JLabel("数据库地址：", JLabel.RIGHT);
+		labUser = new JLabel("用户名：", JLabel.RIGHT);
+		labPassword = new JLabel("密码：", JLabel.RIGHT);
+		labPort = new JLabel("端口：", JLabel.RIGHT);
+		labDB = new JLabel("数据库实例：", JLabel.RIGHT);
+		comboDBType = new JComboBox<>(DBType);
+		txtURL = new JTextField();
+		txtUser = new JTextField();
+		txtPassword = new JPasswordField();
+		txtPort = new JTextField();
+		txtDB = new JTextField();
 
 		panelSync.setLayout(null);
+
+		// 测试连接
+		btnSync.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent evt) {
+				btnTestConActionPerformed(evt);
+			}
+		});
+		btnSync.setBounds(10, 10, 70, 25);
+		panelSync.add(btnSync);
 
 		// 同步
 		btnSync.addActionListener(new ActionListener() {
@@ -186,8 +231,44 @@ public class MainWindow extends JFrame {
 				btnBuildingActionPerformed(evt);
 			}
 		});
-		panelSync.add(btnSync);
 		btnSync.setBounds(10, 10, 70, 25);
+		panelSync.add(btnSync);
+
+		labDBType.setBounds(10, 30, 90, 50);
+		panelSync.add(labDBType);
+
+		labURL.setBounds(10, 65, 90, 50);
+		panelSync.add(labURL);
+
+		labUser.setBounds(10, 100, 90, 50);
+		panelSync.add(labUser);
+
+		labPassword.setBounds(10, 135, 90, 50);
+		panelSync.add(labPassword);
+
+		labPort.setBounds(10, 170, 90, 50);
+		panelSync.add(labPort);
+
+		labDB.setBounds(10, 205, 90, 50);
+		panelSync.add(labDB);
+
+		comboDBType.setBounds(100, 45, 150, 23);
+		panelSync.add(comboDBType);
+
+		txtURL.setBounds(100, 80, 150, 23);
+		panelSync.add(txtURL);
+
+		txtUser.setBounds(100, 115, 150, 23);
+		panelSync.add(txtUser);
+
+		txtPassword.setBounds(100, 150, 150, 23);
+		panelSync.add(txtPassword);
+
+		txtPort.setBounds(100, 185, 150, 23);
+		panelSync.add(txtPort);
+
+		txtDB.setBounds(100, 220, 150, 23);
+		panelSync.add(txtDB);
 
 		tabbedPane.addTab("同步", null, panelSync, "同步数据库表");
 	}
@@ -277,57 +358,83 @@ public class MainWindow extends JFrame {
 	}
 
 	/**
+	 * 测试数据库连接
+	 */
+	private void btnTestConActionPerformed(java.awt.event.ActionEvent evt) {
+		String dbType = comboDBType.getSelectedItem().toString();
+		String url = txtURL.getText();
+		String user = txtUser.getText();
+		String pwd = new String(txtPassword.getPassword());
+		String dbName = txtDB.getText();
+
+		ConConfig config = new ConConfig(dbType, url, user, pwd);
+		if (ConnectionHelper.testConnection(config)) {
+			print("连接成功.");
+		} else {
+			print("连接失败.");
+		}
+
+		config.setDbName(dbName);
+		if (!ConnectionHelper.testConnection(config)) {
+			print("[" + dbName + "]库不存在或无权限.");
+			print("正在初始化数据库...");
+			MssqlDBHelper.initDB(url, user, pwd, dbName);
+			print("数据库初始化完毕..");
+		}
+	}
+
+	/**
 	 * 点击同步
 	 */
 	private void btnBuildingActionPerformed(ActionEvent evt) {
-		// if (!isSelect()) {
-		// return;// 没有选中的行
-		// }
-		//
-		// // 有选中的行
-		// print("开始同步······");
-		// print("开始测试连接······");
-		//
-		// String dbType = comboDB.getSelectedItem().toString();
-		// String url = txtURL.getText();
-		// String user = txtUser.getText();
-		// String pwd = new String(txtPassword.getPassword());
-		// String dbName = txtDB.getText();
-		//
-		// con = new ConConfig(dbType, url, user, pwd);
-		//
-		// // 测试连接
-		// boolean isConOk = ConnectionHelper.testConnection(con);
-		// if (!isConOk) {
-		// print("连接失败！");
-		// print("同步失败！");
-		// return;
-		// }
-		// print("连接成功！");
-		// con.setDbName(dbName);
-		//
-		// // 测试数据库是否存在或有权限
-		// boolean isDBOk = ConnectionHelper.testConnection(con);
-		// if (!isDBOk) {
-		// print("正在初始化数据库······");
-		// MssqlDBHelper.initDB(url, user, pwd, dbName);
-		// print("数据库初始化成功！");
-		// }
-		//
-		// // 开始同步表
-		// String filePath = FileUtil.getProjectPath() + "createTable.sql";
-		//
-		// Map<String, Table> excelTemps = new HashMap<String, Table>();
-		// for (int i = 0; i < dataTable.getRowCount(); i++) {
-		// Boolean isSelect = (Boolean) dataTable.getModel().getValueAt(i, 0);
-		// if (isSelect) {
-		// Table t = (Table) dataTable.getModel().getValueAt(i, 4);
-		// excelTemps.put(t.getTableName(), t);
-		// }
-		// }
+		if (!isSelect()) {
+			return;// 没有选中的行
+		}
 
-		// SyncDbBiz.builderTable(this, con, excelTemps);// 同步库
-		// SyncDbBiz.builderSql(this, excelTemps, filePath);// 生成sql脚本
+		// 有选中的行
+		print("开始同步······");
+		print("开始测试连接······");
+
+		String dbType = comboDBType.getSelectedItem().toString();
+		String url = txtURL.getText();
+		String user = txtUser.getText();
+		String pwd = new String(txtPassword.getPassword());
+		String dbName = txtDB.getText();
+
+		config = new ConConfig(dbType, url, user, pwd);
+
+		// 测试连接
+		boolean isConOk = ConnectionHelper.testConnection(config);
+		if (!isConOk) {
+			print("连接失败！");
+			print("同步失败！");
+			return;
+		}
+		print("连接成功！");
+		config.setDbName(dbName);
+
+		// 测试数据库是否存在或有权限
+		boolean isDBOk = ConnectionHelper.testConnection(config);
+		if (!isDBOk) {
+			print("正在初始化数据库······");
+			MssqlDBHelper.initDB(url, user, pwd, dbName);
+			print("数据库初始化成功！");
+		}
+
+		// 开始同步表
+		String filePath = FileUtil.getProjectPath() + "createTable.sql";
+
+		Map<String, Table> excelTemps = new HashMap<String, Table>();
+		for (int i = 0; i < dataTable.getRowCount(); i++) {
+			Boolean isSelect = (Boolean) dataTable.getModel().getValueAt(i, 0);
+			if (isSelect) {
+				Table t = (Table) dataTable.getModel().getValueAt(i, 4);
+				excelTemps.put(t.getTableName(), t);
+			}
+		}
+
+		SyncDbBiz.builderTable(this, config, excelTemps);// 同步库
+		SyncDbBiz.builderSql(this, excelTemps, filePath);// 生成sql脚本
 
 		print("同步完成！");
 	}
@@ -414,6 +521,19 @@ public class MainWindow extends JFrame {
 				comboBox.setSelectedIndex(comboBox.getItemCount() - 1);
 			}
 		}
+	}
+
+	/**
+	 * 判断tabTables是否有选中的行
+	 */
+	private boolean isSelect() {
+		for (int i = 0; i < dataTable.getRowCount(); i++) {
+			Boolean isSelect = (Boolean) dataTable.getModel().getValueAt(i, 0);
+			if (isSelect) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public static void main(String[] args) {
